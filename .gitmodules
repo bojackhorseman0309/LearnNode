@@ -1,0 +1,3 @@
+[submodule "Learn-Node"]
+	path = Learn-Node
+	url = https://github.com/wesbos/Learn-Node.git
