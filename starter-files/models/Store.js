@@ -1,3 +1,4 @@
+const { Store } = require('express-session');
 const mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
 const slug = require('slugs');
@@ -37,13 +38,27 @@ const storeSchema = new mongoose.Schema({
   photo: String,
 });
 
-storeSchema.pre('save', function (next) {
+storeSchema.pre('save', async function (next) {
   if (!this.isModified('name')) {
     next(); //skip it
     return; //stop the function
   }
   this.slug = slug(this.name);
+  // Find other stores with slug alonso, alonso-1, alonso-2
+  const slugRegEx = new RegExp(`^(${this.slug})((-[0-9]*)?)$`, 'i');
+  const storesWithSlug = await this.constructor.find({ slug: slugRegEx });
+  if (storesWithSlug) {
+    this.slug = `${this.slug}-${storesWithSlug.length + 1}`;
+  }
   next();
 });
+
+storeSchema.statics.getTagsList = function () {
+  return this.aggregate([
+    { $unwind: '$tags' },
+    { $group: { _id: '$tags', count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+  ]);
+};
 
 module.exports = mongoose.model('Store', storeSchema);
